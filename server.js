@@ -15,5 +15,6 @@ app.get("/", (req, res) => {
 app.use("/users", usersRoute);
 
 app.listen(PORT, () => {
+  console.log(new Date());
   console.log(`server is listening at http://localhost:${PORT}`);
 });
