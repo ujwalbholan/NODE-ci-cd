@@ -1,0 +1,24 @@
+{
+  "name": "node",
+  "version": "1.0.0",
+  "description": "simple node express web app",
+  "main": "server.js",
+  "type": "module",
+  "imports": {
+    "#src/*": "./src/*"
+  },
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "test": "echo \"No tests yet\" && exit 0"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "packageManager": "pnpm@10.20.0",
+  "dependencies": {
+    "express": "^5.2.1",
+    "joi": "^18.1.2",
+    "winston": "^3.19.0"
+  }
+}
