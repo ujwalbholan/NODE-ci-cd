@@ -14,6 +14,15 @@ app.get("/", (req, res) => {
 
 app.use("/users", usersRoute);
 
+app.get("/user", (req, res) => {
+  const id = req.query.id;
+
+  // BAD PRACTICE (intentionally)
+  const query = "SELECT * FROM users WHERE id = " + id;
+
+  db.execute(query);
+});
+
 app.listen(PORT, () => {
   console.log(new Date());
   console.log(`server is listening at http://localhost:${PORT}`);
