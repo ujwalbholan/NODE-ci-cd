@@ -5,6 +5,10 @@ on:
     branches:
       - main
 
+  pull_request:
+    branches:
+      - main
+
 permissions:
   contents: read
 
@@ -54,9 +58,18 @@ jobs:
           .
 
       - name: Push Docker image
+        if: github.event_name == 'push'
         run: |
           docker push ${{ secrets.DOCKER_USERNAME }}/node-cicd-app:latest
           docker push ${{ secrets.DOCKER_USERNAME }}/node-cicd-app:${{ github.sha }}
 
       - name: Logout from Docker
         run: docker logout
+
+    # renderer webhooks way but only fro premium user
+    #   - name: Trigger Render Deploy
+    #     if: github.ref == 'refs/heads/main'
+    #     env:
+    #       deploy_url: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
+    #     run: |
+    #       curl "$deploy_url"
