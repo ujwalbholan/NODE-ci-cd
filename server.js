@@ -17,7 +17,6 @@ app.use("/users", usersRoute);
 app.get("/user", (req, res) => {
   const id = req.query.id;
 
-  // BAD PRACTICE (intentionally)
   const query = "SELECT * FROM users WHERE id = " + id;
 
   db.execute(query);
