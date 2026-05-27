@@ -2,12 +2,12 @@ FROM node:20-alpine
 
 WORKDIR /app
 
-COPY package*.json ./
+COPY package.json pnpm-lock.yaml ./
 
-RUN npm ci
+RUN corepack enable && pnpm install --prod --frozen-lockfile
 
 COPY . .
 
 EXPOSE 3000
 
-CMD [ "npm", "start", "dev" ] 
+CMD ["pnpm", "start"]
