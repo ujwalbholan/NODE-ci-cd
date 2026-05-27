@@ -15,8 +15,8 @@ importers:
         specifier: ^5.2.1
         version: 5.2.1
       joi:
-        specifier: ^18.1.2
-        version: 18.1.2
+        specifier: ^18.2.1
+        version: 18.2.1
       winston:
         specifier: ^3.19.0
         version: 3.19.0
@@ -227,8 +227,8 @@ packages:
     resolution: {integrity: sha512-hFoiJiTl63nn+kstHGBtewWSKnQLpyb155KHheA1l39uvtO9nWIop1p3udqPcUd/xbF1VLMO4n7OI6p7RbngDg==}
     engines: {node: '>=8'}
 
-  joi@18.1.2:
-    resolution: {integrity: sha512-rF5MAmps5esSlhCA+N1b6IYHDw9j/btzGaqfgie522jS02Ju/HXBxamlXVlKEHAxoMKQL77HWI8jlqWsFuekZA==}
+  joi@18.2.1:
+    resolution: {integrity: sha512-2/OKlogiESf2Nh3TFCrRjrr9z1DRHeW0I+KReF67+4J0Ns+8hBtHRmoWAZ2OFU6I5+TWLEe6sVlSdXPjHm5UbQ==}
     engines: {node: '>= 20'}
 
   kuler@2.0.0:
@@ -615,7 +615,7 @@ snapshots:
 
   is-stream@2.0.1: {}
 
-  joi@18.1.2:
+  joi@18.2.1:
     dependencies:
       '@hapi/address': 5.1.1
       '@hapi/formula': 3.0.2
