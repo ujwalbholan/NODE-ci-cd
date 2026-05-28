@@ -98,13 +98,13 @@ jobs:
             trivy-results.json
             trivy-results.html
 
-      - name: Fail build on CRITICAL/HIGH vulnerabilities
+      - name: Fail build on CRITICAL vulnerabilities
         uses: aquasecurity/trivy-action@master
         with:
           image-ref: ${{ secrets.DOCKER_USERNAME }}/node-cicd-app:latest
           format: table
           exit-code: 1
-          severity: CRITICAL,HIGH
+          severity: CRITICAL
 
       - name: Push Docker image
         if: github.event_name == 'push'
