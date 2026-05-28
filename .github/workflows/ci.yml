@@ -167,7 +167,6 @@ jobs:
       - name: Build Docker image
         run: |
           docker build \
-            -t $IMAGE_NAME:latest \
             -t $IMAGE_NAME:$IMAGE_TAG \
             .
       - name: Save Docker Image
@@ -278,13 +277,11 @@ jobs:
       #   - name: Build image again (clean job)
       #     run: |
       #       docker build \
-      #         -t $IMAGE_NAME:latest \
       #         -t $IMAGE_NAME:${{ github.sha }} \
       #         .
 
       - name: Push image
         run: |
-          docker push $IMAGE_NAME:latest
           docker push $IMAGE_NAME:$IMAGE_TAG
 
       - name: Logout from docker
