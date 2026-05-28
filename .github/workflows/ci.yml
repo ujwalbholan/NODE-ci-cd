@@ -106,6 +106,21 @@ jobs:
           exit-code: 1
           severity: CRITICAL
 
+      - name: Install Cosign
+        uses: sigstore/cosign-installer@v3
+
+      - name: Sign Docker Image
+        env:
+          COSIGN_PRIVATE_KEY: ${{ secrets.COSIGN_PRIVATE_KEY }}
+          COSIGN_PASSWORD: ${{ secrets.COSIGN_PASSWORD }}
+        run: |
+          echo "$COSIGN_PRIVATE_KEY" > cosign.key
+
+          cosign sign \
+          --key cosign.key \
+          ${{ secrets.DOCKER_USERNAME }}/node-cicd-app:${{ github.sha }} \
+          --yes
+
       - name: Push Docker image
         if: github.event_name == 'push'
         run: |
@@ -122,3 +137,8 @@ jobs:
     #       deploy_url: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
     #     run: |
     #       curl "$deploy_url"
+
+    # This is how cosign  is verify while deploying the docker image
+    # cosign verify \
+    #     --key cosign.pub \
+    #     docker.io/YOUR_USERNAME/node-cicd-app:latest
