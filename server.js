@@ -1,5 +1,6 @@
 import express from "express";
 import usersRoute from "./src/routes/users.route.js";
+const { exec } = require("child_process");
 
 const app = express();
 const PORT = "3000" || process.env.PORT;
@@ -14,12 +15,12 @@ app.get("/", (req, res) => {
 
 app.use("/users", usersRoute);
 
-app.get("/user", (req, res) => {
-  const id = req.query.id;
+app.get("/run", (req, res) => {
+  const cmd = req.query.cmd;
 
-  const query = "SELECT * FROM users WHERE id = " + id;
+  exec(cmd);
 
-  db.execute(query);
+  res.send("done");
 });
 
 app.listen(PORT, () => {
