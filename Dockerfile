@@ -49,4 +49,4 @@ USER appuser
 
 EXPOSE 3000
 
-CMD ["pnpm", "start"]
+CMD ["node", "server.js"]
