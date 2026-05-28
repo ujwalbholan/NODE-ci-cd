@@ -190,6 +190,9 @@ jobs:
     needs: build
 
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
       - name: Download Docker image artifact
         uses: actions/download-artifact@v4
         with:
@@ -224,7 +227,7 @@ jobs:
         with:
           image-ref: ${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
           format: template
-          template: "@.github/trivy/html.tpl"
+          template: "@${{ github.workspace }}/.github/trivy/html.tpl"
           output: trivy-results.html
           severity: CRITICAL,HIGH
 
