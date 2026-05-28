@@ -56,6 +56,13 @@ jobs:
           -t ${{ secrets.DOCKER_USERNAME }}/node-cicd-app:latest \
           -t ${{ secrets.DOCKER_USERNAME }}/node-cicd-app:${{ github.sha }} \
           .
+      - name: Scan Docker image with Trivy
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ secrets.DOCKER_USERNAME }}/node-cicd-app:latest
+          format: table
+          exit-code: 1
+          severity: CRITICAL,HIGH
 
       - name: Push Docker image
         if: github.event_name == 'push'
