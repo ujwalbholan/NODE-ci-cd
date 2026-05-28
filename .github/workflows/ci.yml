@@ -1,3 +1,120 @@
+# name: NODE-CI/CD
+
+# on:
+#   push:
+#     branches:
+#       - main
+
+#   pull_request:
+#     branches:
+#       - main
+
+# permissions:
+#   contents: read
+#   security-events: write
+
+# env:
+#   CI: true
+
+# jobs:
+#   build-and-push:
+#     runs-on: ubuntu-latest
+
+#     steps:
+#       - name: Checkout code
+#         uses: actions/checkout@v6
+
+#       - name: Setup pnpm
+#         uses: pnpm/action-setup@v6
+#         with:
+#           version: 10.20.0
+
+#       - name: Setup Node.js
+#         uses: actions/setup-node@v6
+#         with:
+#           node-version: 20
+#           cache: pnpm
+#           cache-dependency-path: pnpm-lock.yaml
+
+#       - name: Install dependencies
+#         run: pnpm install --frozen-lockfile --ignore-scripts
+
+#       - name: Audit dependencies
+#         run: pnpm audit --audit-level=high --json
+
+#       - name: Run tests
+#         run: pnpm test
+
+#       - name: Login to Docker Hub
+#         uses: docker/login-action@v4
+#         with:
+#           username: ${{ secrets.DOCKER_USERNAME }}
+#           password: ${{ secrets.DOCKER_PASSWORD }}
+
+#       - name: Build Docker image
+#         run: |
+#           docker build \
+#           -t ${{ secrets.DOCKER_USERNAME }}/node-cicd-app:latest \
+#           -t ${{ secrets.DOCKER_USERNAME }}/node-cicd-app:${{ github.sha }} \
+#           .
+
+#       - name: Run Trivy scan (SARIF)
+#         uses: aquasecurity/trivy-action@master
+#         with:
+#           image-ref: ${{ secrets.DOCKER_USERNAME }}/node-cicd-app:latest
+#           format: sarif
+#           output: trivy-results.sarif
+#           severity: CRITICAL,HIGH
+
+#       - name: Upload SARIF to GitHub Security
+#         uses: github/codeql-action/upload-sarif@v4
+#         if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+#         with:
+#           sarif_file: trivy-results.sarif
+
+#       - name: Generate JSON report
+#         uses: aquasecurity/trivy-action@master
+#         with:
+#           image-ref: ${{ secrets.DOCKER_USERNAME }}/node-cicd-app:latest
+#           format: json
+#           output: trivy-results.json
+#           severity: CRITICAL,HIGH
+
+#       - name: Generate HTML report
+#         uses: aquasecurity/trivy-action@master
+#         with:
+#           image-ref: ${{ secrets.DOCKER_USERNAME }}/node-cicd-app:latest
+#           format: template
+#           template: "@.github/trivy/html.tpl"
+#           output: trivy-results.html
+#           severity: CRITICAL,HIGH
+
+#       - name: Upload Trivy Reports
+#         uses: actions/upload-artifact@v4
+#         with:
+#           name: trivy-security-reports
+#           path: |
+#             trivy-results.sarif
+#             trivy-results.json
+#             trivy-results.html
+
+#       - name: Fail build on CRITICAL vulnerabilities
+#         uses: aquasecurity/trivy-action@master
+#         with:
+#           image-ref: ${{ secrets.DOCKER_USERNAME }}/node-cicd-app:latest
+#           format: table
+#           exit-code: 1
+#           severity: CRITICAL
+
+#       - name: Push Docker image
+#         if: github.event_name == 'push'
+#         run: |
+#           docker push ${{ secrets.DOCKER_USERNAME }}/node-cicd-app:latest
+#           docker push ${{ secrets.DOCKER_USERNAME }}/node-cicd-app:${{ github.sha }}
+
+#       - name: Logout from Docker
+#         run: docker logout
+
 name: NODE-CI/CD
 
 on:
@@ -15,9 +132,14 @@ permissions:
 
 env:
   CI: true
+  IMAGE_NAME: ${{ secrets.DOCKER_USERNAME }}/node-cicd-app
+  IMAGE_TAG: ${{ github.sha }}
 
 jobs:
-  build-and-push:
+  # ----------------------------
+  # 1. BUILD + TEST + DOCKER BUILD
+  # ----------------------------
+  build:
     runs-on: ubuntu-latest
 
     steps:
@@ -39,43 +161,60 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile --ignore-scripts
 
-      - name: Audit dependencies
-        run: pnpm audit --audit-level=high --json
-
       - name: Run tests
         run: pnpm test
-
-      - name: Login to Docker Hub
-        uses: docker/login-action@v4
-        with:
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PASSWORD }}
 
       - name: Build Docker image
         run: |
           docker build \
-          -t ${{ secrets.DOCKER_USERNAME }}/node-cicd-app:latest \
-          -t ${{ secrets.DOCKER_USERNAME }}/node-cicd-app:${{ github.sha }} \
-          .
+            -t $IMAGE_NAME:latest \
+            -t $IMAGE_NAME:$IMAGE_TAG \
+            .
+      - name: Save Docker Image
+        run: |
+          docker save \
+           -o image.tar \
+            $IMAGE_NAME:$IMAGE_TAG
+
+      - name: Upload Docker image artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: docker-image
+          path: image.tar
+
+  # ----------------------------
+  # 2. SECURITY SCAN (TRIVY)
+  # ----------------------------
+  security-scan:
+    runs-on: ubuntu-latest
+    needs: build
+
+    steps:
+      - name: Download Docker image artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: docker-image
+
+      - name: Load Docker image
+        run: docker load -i image.tar
 
       - name: Run Trivy scan (SARIF)
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: ${{ secrets.DOCKER_USERNAME }}/node-cicd-app:latest
+          image-ref: ${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
           format: sarif
           output: trivy-results.sarif
           severity: CRITICAL,HIGH
 
       - name: Upload SARIF to GitHub Security
         uses: github/codeql-action/upload-sarif@v4
-        if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
         with:
           sarif_file: trivy-results.sarif
 
       - name: Generate JSON report
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: ${{ secrets.DOCKER_USERNAME }}/node-cicd-app:latest
+          image-ref: ${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
           format: json
           output: trivy-results.json
           severity: CRITICAL,HIGH
@@ -83,52 +222,95 @@ jobs:
       - name: Generate HTML report
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: ${{ secrets.DOCKER_USERNAME }}/node-cicd-app:latest
+          image-ref: ${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
           format: template
           template: "@.github/trivy/html.tpl"
           output: trivy-results.html
           severity: CRITICAL,HIGH
 
-      - name: Upload Trivy Reports
+      - name: Upload reports
         uses: actions/upload-artifact@v4
         with:
-          name: trivy-security-reports
+          name: trivy-reports
           path: |
             trivy-results.sarif
             trivy-results.json
             trivy-results.html
 
-      - name: Fail build on CRITICAL vulnerabilities
+      - name: Fail on CRITICAL vulnerabilities
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: ${{ secrets.DOCKER_USERNAME }}/node-cicd-app:latest
+          image-ref: ${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
           format: table
           exit-code: 1
           severity: CRITICAL
 
+  # ----------------------------
+  # 3. PUSH IMAGE
+  # ----------------------------
+  push:
+    runs-on: ubuntu-latest
+    needs: security-scan
+
+    if: github.event_name == 'push'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Download Docker image artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: docker-image
+
+      - name: Load Docker image
+        run: docker load -i image.tar
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v4
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      #   - name: Build image again (clean job)
+      #     run: |
+      #       docker build \
+      #         -t $IMAGE_NAME:latest \
+      #         -t $IMAGE_NAME:${{ github.sha }} \
+      #         .
+
+      - name: Push image
+        run: |
+          docker push $IMAGE_NAME:latest
+          docker push $IMAGE_NAME:$IMAGE_TAG
+
+      - name: Logout from docker
+        run: docker logout
+
+  # ----------------------------
+  # 4. SIGN IMAGE (COSIGN)
+  # ----------------------------
+  sign:
+    runs-on: ubuntu-latest
+    needs: push
+
+    if: github.event_name == 'push'
+
+    steps:
       - name: Install Cosign
         uses: sigstore/cosign-installer@v3
 
-      - name: Sign Docker Image
+      - name: Sign Docker image
         env:
           COSIGN_PRIVATE_KEY: ${{ secrets.COSIGN_PRIVATE_KEY }}
           COSIGN_PASSWORD: ${{ secrets.COSIGN_PASSWORD }}
         run: |
-          echo "$COSIGN_PRIVATE_KEY" > cosign.key
+          printf '%b' "$COSIGN_PRIVATE_KEY" > cosign.key
 
           cosign sign \
-          --key cosign.key \
-          ${{ secrets.DOCKER_USERNAME }}/node-cicd-app:${{ github.sha }} \
-          --yes
-
-      - name: Push Docker image
-        if: github.event_name == 'push'
-        run: |
-          docker push ${{ secrets.DOCKER_USERNAME }}/node-cicd-app:latest
-          docker push ${{ secrets.DOCKER_USERNAME }}/node-cicd-app:${{ github.sha }}
-
-      - name: Logout from Docker
-        run: docker logout
+            --key cosign.key \
+            ${{ secrets.DOCKER_USERNAME }}/node-cicd-app:${{ github.sha }} \
+            --yes
 
     # renderer webhooks way but only fro premium user
     #   - name: Trigger Render Deploy
