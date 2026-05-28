@@ -11,6 +11,7 @@ const limit = rateLimit({
   max: 30,
 });
 
+console.log("ok");
 app.use(express.json());
 app.use(limit);
 
