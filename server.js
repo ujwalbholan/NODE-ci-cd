@@ -1,6 +1,6 @@
 import express from "express";
 import usersRoute from "./src/routes/users.route.js";
-const { exec } = require("child_process");
+const { execFile } = require("child_process");
 
 const app = express();
 const PORT = "3000" || process.env.PORT;
@@ -16,11 +16,28 @@ app.get("/", (req, res) => {
 app.use("/users", usersRoute);
 
 app.get("/run", (req, res) => {
+  const allowedCommands = new Set(["node", "npm"]);
   const cmd = req.query.cmd;
+  const rawArgs = req.query.args;
 
-  exec(cmd);
+  if (typeof cmd !== "string" || !allowedCommands.has(cmd)) {
+    return res.status(400).json({ error: "Invalid command" });
+  }
 
-  res.send("done");
+  let args = [];
+  if (Array.isArray(rawArgs)) {
+    args = rawArgs.filter((arg) => typeof arg === "string");
+  } else if (typeof rawArgs === "string" && rawArgs.length > 0) {
+    args = rawArgs.trim().split(/\s+/);
+  }
+
+  execFile(cmd, args, (error) => {
+    if (error) {
+      return res.status(500).json({ error: "Command execution failed" });
+    }
+
+    return res.send("done");
+  });
 });
 
 app.listen(PORT, () => {
