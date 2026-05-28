@@ -1,11 +1,18 @@
 import express from "express";
 import usersRoute from "./src/routes/users.route.js";
-const { execFile } = require("child_process");
+import rateLimit from "express-rate-limit";
+import { execFile } from "child_process";
 
 const app = express();
 const PORT = "3000" || process.env.PORT;
 
+const limit = rateLimit({
+  windowMs: 15 * 60 * 100,
+  max: 30,
+});
+
 app.use(express.json());
+app.use(limit);
 
 app.get("/", (req, res) => {
   res.json({
