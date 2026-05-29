@@ -1,17 +1,29 @@
 import express from "express";
 import usersRoute from "./src/routes/users.route.js";
 import rateLimit from "express-rate-limit";
-import { execFile } from "child_process";
+import { execFile } from "node:child_process";
 
 const app = express();
-const PORT = "3000" || process.env.PORT;
+
+const PORT = process.env.PORT || "3000";
+app.disable("x-powered-by");
 
 const limit = rateLimit({
   windowMs: 15 * 60 * 100,
   max: 30,
 });
 
-console.log("ok");
+const allowedTasks = {
+  nodeVersion: {
+    command: "node",
+    args: ["--version"],
+  },
+  npmVersion: {
+    command: "npm",
+    args: ["--version"],
+  },
+};
+
 app.use(express.json());
 app.use(limit);
 
@@ -24,27 +36,20 @@ app.get("/", (req, res) => {
 app.use("/users", usersRoute);
 
 app.get("/run", (req, res) => {
-  const allowedCommands = new Set(["node", "npm"]);
-  const cmd = req.query.cmd;
-  const rawArgs = req.query.args;
+  const task = req.query.task;
 
-  if (typeof cmd !== "string" || !allowedCommands.has(cmd)) {
-    return res.status(400).json({ error: "Invalid command" });
+  if (typeof task !== "string" || !allowedTasks[task]) {
+    return res.status(400).json({ error: "Invalid task" });
   }
 
-  let args = [];
-  if (Array.isArray(rawArgs)) {
-    args = rawArgs.filter((arg) => typeof arg === "string");
-  } else if (typeof rawArgs === "string" && rawArgs.length > 0) {
-    args = rawArgs.trim().split(/\s+/);
-  }
+  const { command, args } = allowedTasks[task];
 
-  execFile(cmd, args, (error) => {
+  execFile(command, args, { shell: false }, (error, stdout) => {
     if (error) {
       return res.status(500).json({ error: "Command execution failed" });
     }
 
-    return res.send("done");
+    return res.json({ output: stdout.trim() });
   });
 });
 
