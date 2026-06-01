@@ -1,4 +1,4 @@
-#not good practice
+#not good practice single build
 # FROM node:20-alpine
 
 # WORKDIR /app
