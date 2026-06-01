@@ -81,7 +81,7 @@ jobs:
           name: docker-image
 
       - name: Load Docker image
-        run: docker.load -i image.tar
+        run: docker load -i image.tar
 
       - name: Run Trivy scan (SARIF)
         uses: aquasecurity/trivy-action@master
