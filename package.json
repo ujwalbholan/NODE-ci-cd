@@ -19,7 +19,7 @@
   "dependencies": {
     "express": "^5.2.1",
     "express-rate-limit": "^8.5.2",
-    "joi": "^18.2.1",
+    "joi": "^18.2.9",
     "winston": "^3.19.0"
   },
   "pnpm": {
